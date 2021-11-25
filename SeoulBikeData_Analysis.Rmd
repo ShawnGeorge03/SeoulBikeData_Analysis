@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
   \Large{Shawn Santhoshgeorge (1006094673)}\\
   \Large{Shashwat Piyush Doshi (1005716940)}\\
   \Large{Rohita Nalluri (1006154037)}\\
-  \Large{James Chen ()}\\
+  \Large{James Chen (1006166220)}\\
   \vspace*{3\baselineskip}
   \Large{\textbf{Due Date}}\\
   December 06, 2021
