@@ -4,6 +4,7 @@
 
 # Session Data files
 .RData
+.DS_Store
 
 # User-specific files
 .Ruserdata
@@ -37,3 +38,9 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Knit files
+SeoulBikeData_Analysis.pdf
+SeoulBikeData_Analysis.html
+SeoulBikeData_Analysis.doc
+SeoulBikeData_Analysis.docx
