@@ -52,8 +52,9 @@ X12 = myData$`Functioning Day`
 
 ```{r echo=FALSE}
 
-data1 = myData
+date = as.POSIXlt(X0)
 
-data1$day = weekdays(as.POSIXlt(data1$Date))
+weekends = as.numeric(weekdays(date) == "Saturday" || weekdays(date) == "Sunday")
+
 
 ```
