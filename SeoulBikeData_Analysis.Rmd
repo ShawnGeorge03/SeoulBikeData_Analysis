@@ -21,3 +21,39 @@ knitr::opts_chunk$set(echo = TRUE)
   \Large{\textbf{Due Date}}\\
   December 06, 2021
 \end{center}
+
+
+```{r echo=FALSE}
+
+library("xlsx")
+myData = read.xlsx(file = 'SeoulBikeData.xlsx', 1, header = TRUE)
+
+n = dim(myData)[1]
+
+X0 = as.Date(myData$Date, format = "%d/%m/%Y")
+  
+Y = myData$Rented.Bike.Count
+X1 = myData$Hour
+X2 = myData$Temperature..C.
+X3 = myData$Humidity...
+X4 = myData$Wind.speed..m.s.
+X5 = myData$Visibility..10m.
+X6 = myData$Dew.point.temperature..C.
+X7 = myData$Solar.Radiation..MJ.m2.
+X8 = myData$Rainfall.mm.
+X9 = myData$Snowfall..cm.
+#X10 (seasons)comprises of 3 dummy variables, as done in lec 15.
+
+X10 = myData$Seasons
+X11 = myData$Holiday
+X12 = myData$Functioning.Day
+
+```
+
+```{r echo=FALSE}
+
+data1 = myData
+
+data1$day = weekdays(as.POSIXlt(data1$Date))
+
+```
