@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r echo=FALSE}
 
 library("readxl")
-myData = read.csv(file='SeoulBikeData.csv', header=TRUE, check.names = F)
+myData = read.csv(file='SeoulBikeData.csv', check.names = F)
 
 n = dim(myData)[1]
 
@@ -44,6 +44,6 @@ DayOfTheWeek = format(X0, "%a")
 
 weekends = as.numeric(as.numeric(DayOfTheWeek == "Sat") != as.numeric(DayOfTheWeek == "Sun"))
 
-
+# this assigns = 1 when DayOfTheWeek == "Sat" or "Sun"
 
 ```
