@@ -1,23 +1,11 @@
 ---
 output:
-  pdf_document: default
+  pdf_document:
+    includes:
+      before_body: title-page.sty
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-\begin{center}
-  \LARGE{\textbf{Predictive Model for Bike Usage in City of Seoul}}\\
-  \vspace*{2\baselineskip}
-  \Large{\textbf{STAC67 Case Study}}\\
-  \normalsize{Group 24}\\
-  \vspace*{2\baselineskip}
-  \Large{Shawn Santhoshgeorge (1006094673)}\\
-  \Large{Shashwat Piyush Doshi (1005716940)}\\
-  \Large{Rohita Nalluri (1006154037)}\\
-  \Large{James Chen (1006166220)}\\
-  \vspace*{3\baselineskip}
-  \Large{\textbf{Due Date}}\\
-  December 06, 2021
-\end{center}
