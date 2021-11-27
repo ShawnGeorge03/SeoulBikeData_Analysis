@@ -58,5 +58,4 @@ weekends = as.numeric(as.numeric(DayOfTheWeek == "Sat") != as.numeric(DayOfTheWe
 
 # this assigns = 1 when DayOfTheWeek == "Sat" or "Sun"
 
-
 ```
