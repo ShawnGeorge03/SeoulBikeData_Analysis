@@ -1,4 +1,7 @@
 ---
+bibliography: [references.bib]
+nocite: '@*'
+csl: 'apa.csl'
 output:
   pdf_document:
     includes:
@@ -17,56 +20,47 @@ knitr::opts_chunk$set(echo = TRUE)
 \newpage
 \textbf{\LARGE Introduction}
 
-In the past decade the usage of public rental bikes have increased in various
-urban cities. In many urban cities around the world, rental bikes have become a 
-crucial part of the transportation system due to various reasons. They help to 
-provide a free or affordable access of transportation for short-distance trips 
-instead of using a private vehicles. They also help with reducing congestion, 
-noise and air pollution in a busy city (Winters, 2020). Bike Sharing systems 
-are now rapidly growing across the world with nearly 2000 various operating 
-programs in total as of May 2021 (Yu et al., 2021) and the demand for these 
-systems are growing at 14.3% compounded annually from 2017 to 2025 (Cooper, 2019). 
+In the past decade, the usage of public rental bikes has increased in various 
+urban cities. In cities, rental bikes have become a crucial part of transportation
+because of many reasons. They provide free or affordable access to transportation
+for short-distance trips instead of requiring a private vehicle and help reduce 
+congestion, noise and air pollution in a city (Winters, 2020). Bike Sharing systems
+are now rapidly growing across the world at nearly 2000 various operating programs
+in total as of May 2021 (Yu et al., 2021). The demand for these systems is growing
+at 14.3% compounded annually from 2017 to 2025 (Cooper, 2019). 
+ 
+There are various public bike rental systems across the world, like in the city 
+of Toronto where they have approximately 6,850 bikes and its users have completed
+2.9 million trips as of 2020 (Bike Share Toronto, 2021). In New York City there 
+are "... nearly eight hundred thousand (773,000) ride a bicycle regularly" and 
+have completed over 7 million rides as of September 2021 with a 26% growth in 
+daily cycling between 2014 to 2019 (New York City DOT, 2021). One of the biggest
+bike-sharing systems is found in China at Hangzhou and Wuhan where their residents
+have access to 90,000 and 70,000 bicycles respectively 
+(Borowska-Stefańska et al., 2021). 
+ 
+Like many other cities within the world, the city of Seoul in South Korea has 
+also founded a bike-sharing system called _Ttareungyi_ or Seoul Public Bike 
+started in 2015. It was started to " resolve issues of traffic congestion, air 
+pollution, and high oil prices in Seoul, and to build a healthier society while 
+enhancing the quality of life for Seoul citizens" (Seoul Metropolitan Government,
+2015). As of March 20, 2018, it has exceeded 620,000 memberships with 38% of the 
+users using the bikes during rush hour (Seoul Metropolitan Government, 2018). Due
+to the high usage of bikes in cities effective management of bike-sharing systems 
+must be developed to ensure the general public can access the service when required.
+ 
+The following data set from the Seoul Public Bike initiative provides various 
+information like the number of bikes rented, temperature, humidity, wind speed, 
+visibility, solar radiation, snowfall and more. This can be used to see how 
+weather affects the number of bikes rented per hour and makes a predictive model
+for future uses from the given data from December 1st, 2017 to December 1st, 2018. 
+This is a very important question to consider since an online survey conducted 
+within the geographical region of Asia in 2016 identified,  climate as an "... 
+important physical barrier with 25% of respondents strongly agreeing that it 
+constrains them physically, particularly warm or warmth and high precipitation 
+levels."(Mateo-Babiano et al., 2017) among other reasons like infrastructure 
+issues and others.
 
-There are various public bike rental systems in place across the world, like in 
-City of Toronto which has approximately 6,850 bikes where its users have 
-completed 2.9 million trips as of 2020 (Bike Share Toronto, 2021). Another 
-example is New York City which has a total of ___ bikes and its users have 
-completed approximately 510,000 trips made in New York City alone as of 2020 with
-a 35% growth in daily cycling between 2013 to 2018 (New York City DOT, 2021). 
-Some of the largest bike sharing systems can be found in the Chinese cities of 
-Hangzhou and Wuhan, where users have access to 90,000 and 70,000 bicycles, 
-respectively (Borowska-Stefańska et al., 2021). Therefore, effective management 
-and model must developed to ensure the public can access the service when required.
-
-Like many of those cities mentioned above, the city of Seoul in South Korea has 
-also setup a bike sharing system called _Ddareungi_ or Seoul Bike was started in
-2015 to tackle traffic congestion, high oil price, and air pollution in Seoul, 
-and to create a healthier society thus improving the quality of life for the 
-residents (V E et al., 2020).
-
-The following paper will look at the data set from Seoul Bike to see how weather 
-affects the number of bikes rented per hour and create a predictive model for 
-future uses from the given data from December the 1st of 2017 to December the 1st
-of 2018. This is an important question as in survey conducted in the geographical
-region of Asia in 2016 identified, climate as an "... important physical barrier 
-with 25% of respondents strongly agreeing that it constrains them physically, 
-particularly warm or hot temperature and high precipitation levels."(Mateo-Babia
-no et al., 2017) among other reasons like infrastructure issues and others
-
-The following data set contains weather information (Temperature, Humidity, Wind 
-speed, Visibility, Dew point, Solar radiation, Snowfall, Rainfall), the target 
-is the number of bikes rented per hour and date information. 
 \newpage
 
-\newpage 
-\textbf{\LARGE Citation}
-
-1. https://cyclingincities.spph.ubc.ca/motivating-cycling/bikeshare-systems/
-2. https://bikesharingworldmap.com/reports/bswm_mid2021report.pdf
-3. https://www.hexaresearch.com/research-report/bike-rental-market#utm_source=referral&utm_medium=prnewswire.com&utm_campaign=prn_bikerental_20Mar_rd1
-4. https://bikesharetoronto.com/news/2020-year-in-review/
-5. https://www1.nyc.gov/html/dot/downloads/pdf/cycling-in-the-city-2020.pdf
-6. https://www.mdpi.com/2072-4292/13/18/3597?type=check_update&version=2
-7. https://ietresearch.onlinelibrary.wiley.com/doi/pdf/10.1049/iet-its.2019.0796
-8. https://www.sciencedirect.com/science/article/pii/S2352146517306828
-\newpage
+\textbf{\LARGE Bibliography}
