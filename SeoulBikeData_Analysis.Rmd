@@ -12,6 +12,10 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r include=FALSE}
+library("readxl")
+```
+
 \newpage
 \textbf{\LARGE Abstract}
 
@@ -60,6 +64,78 @@ important physical barrier with 25% of respondents strongly agreeing that it
 constrains them physically, particularly warm or warmth and high precipitation 
 levels."(Mateo-Babiano et al., 2017) among other reasons like infrastructure 
 issues and others.
+
+\newpage
+\textbf{Data Preprocessing}
+
+In this stage we are analyzing the data to verify that there are no missing values
+in any of the columns, change the format of certain variables to make it easier 
+to make visualization from the data.
+
+```{r}
+myData = read.csv(file='SeoulBikeData.csv', check.names = F)
+```
+
+```{r echo=FALSE}
+knitr::kable(x=colnames(myData), format="simple", col.names = "Column Names")
+```
+
+From above, we can see that the column names are quite messy and can make it difficult
+to use it later. So we will change the value of the columns to make it better.
+
+```{r}
+colnames(myData) = c("Date", "RentedBikeCount", "Hour", "Temperature", "Humidity",
+                     "Windspeed", "Visibility", "DewPointTemp", "SolarRadiation",
+                     "Rainfall", "Snowfall", "Seasons", "Holiday", "FunctioningDay")
+```
+
+Now, we check if any of the columns of the data has any null values or corrupted 
+values. We use the R built-in function is.na() which will return a vector containing
+TRUE or FALSE based on the fact that it is null or not. We then use the any() to 
+find out if any of the values is TRUE.
+
+```{r}
+checkNullValues = sapply(colnames(myData), FUN = function(col.name) 
+                                                  any(is.na(myData[,col.name])))
+```
+
+\newpage
+
+```{r echo=FALSE}
+knitr::kable(checkNullValues, format="simple", col.names = "Is Null")
+rm(checkNullValues)
+```
+
+Since for each columns the output is FALSE, therefore all the columns of the data
+does not contain null or corrupted values.
+
+Looking at the date we see a variable called _FunctioningDay_ which is there to
+indicate if the if the bike-sharing system is available or not and if we observe 
+the amount of rented bikes we see that is 0 for all `r length(myData$Date)` days. 
+Since here we are trying to predict how many bikes will be rented when the system
+is open. For this reason we can remove these observations and drop that variable
+since it will always will be YES.
+
+```{r}
+myData = myData[myData$FunctioningDay=="Yes",]
+myData = within.data.frame(myData, rm(FunctioningDay))
+```
+
+Looking at the data, there is variable called _Date_ which records the Date when
+a bikes are rented. We can formatted the values to make use a built-in date function
+
+```{r}
+myData$Date = as.Date(myData$Date, format = "%d/%m/%Y")
+```
+
+\newpage
+
+\textbf{Exploratory Data Analysis}
+
+
+
+
+
 
 \newpage
 
