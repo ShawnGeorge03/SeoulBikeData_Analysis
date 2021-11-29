@@ -133,20 +133,140 @@ myData$Date = as.Date(myData$Date, format = "%d/%m/%Y")
 
 \textbf{Exploratory Data Analysis}
 
-# Holiday
+# RentedBikeCount (Y)
+
+The number of bikes rented per hour.
+```{r echo=FALSE}
+summary(myData$RentedBikeCount)
+hist(myData$RentedBikeCount)
+```
+
+# Hours (X1: h0-h22)
+
+Categorical variable corresponding to what hour of the day it is. Value range from 0 to 23. Base category will be set to hour 23.
+```{r}
+Hours = unique(myData$Hour)
+meanBikeRentalPerHour = rep(0, length(Hours))
+for (idx in seq(length(Hours))){
+  meanBikeRentalPerHour[idx] = mean(myData[myData$Hour == Hours[idx], "RentedBikeCount"])
+}
+ggplot(data=as.data.frame(meanBikeRentalPerHour)) +
+  geom_col(aes(x=Hours, y=meanBikeRentalPerHour, fill=Hours)) + 
+  scale_fill_gradient(low="grey",high="black") +
+  labs(x = "Hours", y = "Mean Rented Bikes Count")
+rm(Hours, meanBikeRentalPerHour, idx)
+```
+
+# Temperature (X2)
+
+Temperature measured in degree celsius (℃) at hour of observation.
+```{r}
+summary(bike.data$Temperature)
+DailyMeanTemperature <- tapply(myData$Temperature, myData$Date, FUN=mean)
+plot(DailyMeanTemperature, xlab ='Day')
+```
+
+# Humidity (X3)
+
+Humidity measured in % at hour of observation.
+```{r}
+summary(bike.data$Humidity)
+HourlyMeanHumidity <- tapply(myData$Humidity, myData$Hour, FUN=mean)
+plot(HourlyMeanHumidity, xlab ='Hour')
+```
+
+# WindSpeed (X4)
+
+Windspeed measured in metres/second (m/s) at hour of observation. 
+```{r}
+summary(bike.data$Windspeed)
+hist(bike.data$Windspeed)
+DailyMeanWindspeed <- tapply(myData$Windspeed, myData$Date, FUN=mean)
+Mean <- tapply(myData$Windspeed, myData$Date, FUN=mean)
+index <- seq(1,353)
+fit <- lm(Mean~index)
+plot(DailyMeanWindspeed, xlab='Day')
+abline(fit, col='red')
+'Correlation of windspeed against date:'
+cor(DailyMeanWindspeed, index)
+index2 <- seq(0,23)
+'Correlation of windspeed against hour:'
+cor(HourlyMeanWindspeed, index2)
+HourlyMeanWindspeed <- tapply(myData$Windspeed, myData$Hour, FUN=mean)
+plot(HourlyMeanWindspeed, xlab='Hour')
+```
+
+# Visibility (X5)
+
+The distance till which an object or light can be clearly seen, measured in metres (m) at hour of observation.
+```{r}
+summary(myData$Visibility)
+hist(myData$Visibility)
+HourlyMeanVisibility <- tapply(myData$Visibility, myData$Hour, FUN=mean)
+plot(HourlyMeanVisibility, xlab ='Hour')
+```
+
+# Solar Radiation (X7)
+
+The amount of solar radiation experienced per square metre, measured in megajoules/metre^2 (Mj/m^2) at hour of observation.
+```{r}
+summary(myData$SolarRadiation)
+myData$Month = format(myData$Date, "%b")
+MonthlyMeanSolarRadiation <- tapply(myData$SolarRadiation, myData$Month, FUN=mean)
+barplot(MonthlyMeanSolarRadiation, ylab='MonthlyMeanSolarRadiation', xlab ='Month')
+HourlyMeanSolarRadiation <- tapply(myData$SolarRadiation, myData$Hour, FUN=mean)
+plot(HourlyMeanSolarRadiation, xlab='Hour')
+```
+
+# Rainfall (X8)
+
+The rainfall experienced, measured in millimetres (mm), at hour of observation.
+```{r}
+summary(bike.data$Rainfall)
+myData$Month = format(myData$Date, "%b")
+DailyMaxRF <- tapply(myData$Rainfall, myData$Month, FUN=max)
+barplot(DailyMaxRF, ylab='MonthlyMaxRainfall', xlab='Month')
+```
+
+# Snowfall (X9)
+
+The snowfall experienced, measured in centimetres (cm), at hour of observation.
+```{r}
+summary(bike.data$Snowfall)
+myData$Month = format(myData$Date, "%b")
+DailyMaxSF <- tapply(myData$Snowfall, myData$Month, FUN=max)
+barplot(DailyMaxSF, ylab='MonthlyMaxSnowfall', xlab='Month')
+```
+
+# Seasons (X10: D1, D2, D3)
+
+Categorical variable for current season in Seoul (Winter, Spring, Summer, Autumn) at hour of observation. Base category will be set to Autumn.
+```{r}
+Seasons = unique(myData$Seasons)
+meanBikeRentalPerSeason = rep(0, length(Seasons))
+for (idx in seq(length(Seasons))){
+  meanBikeRentalPerSeason[idx] = mean(myData[myData$Seasons == Seasons[idx], "RentedBikeCount"])
+}
+ggplot(data=as.data.frame(meanBikeRentalPerSeason)) +
+  geom_col(aes(x=Seasons, y=meanBikeRentalPerSeason, fill=Seasons)) +
+  scale_fill_manual(values=c("#003f5c", "#7a5195", "#ef5675", "#ffa600")) +
+  labs(x = "Seasons", y = "Mean Rented Bikes Count")
+rm(Seasons, meanBikeRentalPerSeason, idx)
+```
+
+# Holiday (X11)
+
+Categorical variable for whether or not the day is a holiday. 1 for holiday, 0 for not holiday. Base category will be set to no holiday.
 ```{r}
 matrixOfMeanHrs = matrix(data=NA, nrow=24, ncol=2, dimnames=(list(c(1:24), unique(myData$Holiday))))
-
 for (holidayStatus in colnames(matrixOfMeanHrs)){
   HolidayData = subset(myData[myData$Holiday == holidayStatus, ], select=c("Hour", "RentedBikeCount"))
   for (hour in unique(myData[,"Hour"])){
     matrixOfMeanHrs[hour + 1, holidayStatus] = mean(HolidayData[HolidayData["Hour"] == hour, "RentedBikeCount"])
   }
 }
-
 MeanHrs = data.frame(c(1:24), matrixOfMeanHrs[, "Holiday"], matrixOfMeanHrs[, "No Holiday"])
 colnames(MeanHrs) = c("Hours", "Holiday", "NoHoliday")
-
 ggplot(MeanHrs, aes(x=Hours - 1)) + 
   labs(x = "Hours", y = "Mean Rented Bikes Count", color="") +
   geom_line(aes(y=Holiday, color="Holiday")) + 
@@ -154,20 +274,18 @@ ggplot(MeanHrs, aes(x=Hours - 1)) +
 rm(matrixOfMeanHrs, holidayStatus, HolidayData, hour, MeanHrs)
 ```
 
+# Weekend (weekends)
 
-# Weekend
+Categorical variable for whether or not the day is a weekend. 1 for weekend, 0 for not weekend. Base category will be set to not weekend.
 ```{r}
 myData$WeekDay = format(myData$Date, "%a")
-
 matrixOfMeanHrs = matrix(data=NA, nrow=24, ncol=7, dimnames=(list(c(1:24),unique(myData$WeekDay))))
-
 for (weekday in colnames(matrixOfMeanHrs)){
   weekdayData = subset(myData[myData$WeekDay == weekday, ], select=c("Hour", "RentedBikeCount"))
   for (hour in unique(myData[,"Hour"])){
     matrixOfMeanHrs[hour + 1, weekday] = mean(weekdayData[weekdayData["Hour"] == hour, "RentedBikeCount"])
   }
 }
-
 MeanHrs = data.frame(c(1:24), matrixOfMeanHrs[, "Mon"], 
                               matrixOfMeanHrs[, "Tue"],
                               matrixOfMeanHrs[, "Wed"],
@@ -177,7 +295,6 @@ MeanHrs = data.frame(c(1:24), matrixOfMeanHrs[, "Mon"],
                               matrixOfMeanHrs[, "Sun"])
 colnames(MeanHrs) = c("Hours", "Monday", "Tuesday", "Wednesday", "Thursday", 
                       "Friday", "Saturday", "Sunday")
-
 ggplot(MeanHrs, aes(x=Hours - 1)) + 
   geom_line(aes(y=Monday, color="Monday")) + 
   geom_line(aes(y=Tuesday, color="Tuesday")) + 
@@ -192,55 +309,42 @@ ggplot(MeanHrs, aes(x=Hours - 1)) +
 rm(matrixOfMeanHrs, weekday, weekdayData, hour, MeanHrs)
 ```
 
-# Hours
-```{r}
-Hours = unique(myData$Hour)
-meanBikeRentalPerHour = rep(0, length(Hours))
 
-for (idx in seq(length(Hours))){
-  meanBikeRentalPerHour[idx] = mean(myData[myData$Hour == Hours[idx], "RentedBikeCount"])
-}
+# Months (m1-m11)
 
-ggplot(data=as.data.frame(meanBikeRentalPerHour)) +
-  geom_col(aes(x=Hours, y=meanBikeRentalPerHour, fill=Hours)) + 
-  scale_fill_gradient(low="grey",high="black") +
-  labs(x = "Hours", y = "Mean Rented Bikes Count")
-rm(Hours, meanBikeRentalPerHour, idx)
-
-```
-# Months
+Categorical variable for which month it is. Base category will be set to december.
 ```{r}
 myData$Month = format(myData$Date, "%b")
-
 Months = factor(unique(myData$Month), levels = month.abb)
 meanBikeRentalPerMonth = rep(0, length(Months))
-
 for (idx in seq(length(Months))){
   meanBikeRentalPerMonth[idx] = mean(myData[myData$Month == Months[idx], "RentedBikeCount"])
 }
-
 ggplot(data=as.data.frame(meanBikeRentalPerMonth)) +
   geom_col(aes(x=Months, y=meanBikeRentalPerMonth, fill=Months)) +
   labs(x = "Months", y = "Mean Rented Bikes Count")
 rm(Months, meanBikeRentalPerMonth, idx)
 ```
 
+\newpage
 
-# Seasons
+\textbf{Removed Variables}
+
+FunctioningDay and DewPointTemp will not be considered in the model.
+
+# FunctioningDay (X12)
+
+Categorical variable. 1 if bikes are funcitoning, 0 if not.
+Days when bikes are not functional will be guaranteed to produce observations of 0 bikes rented per hour. Therefore, there is no need to include this variable in our model.
+
+# DewPointTemp (X6)
+
+The temperature at dew point measured in celsius (°C) at hour of observation.
+Due to a high correlation between DewPointTemp and Temperature it is redundant to include both DewPointTemp and Temeprature in the model.
 ```{r}
-Seasons = unique(myData$Seasons)
-meanBikeRentalPerSeason = rep(0, length(Seasons))
-
-for (idx in seq(length(Seasons))){
-  meanBikeRentalPerSeason[idx] = mean(myData[myData$Seasons == Seasons[idx], "RentedBikeCount"])
-}
-
-ggplot(data=as.data.frame(meanBikeRentalPerSeason)) +
-  geom_col(aes(x=Seasons, y=meanBikeRentalPerSeason, fill=Seasons)) +
-  scale_fill_manual(values=c("#003f5c", "#7a5195", "#ef5675", "#ffa600")) +
-  labs(x = "Seasons", y = "Mean Rented Bikes Count")
-rm(Seasons, meanBikeRentalPerSeason, idx)
+cor(myData$Temperature, myData$DewPointTemp)
 ```
+
 \newpage
 
 \textbf{\LARGE Bibliography}
