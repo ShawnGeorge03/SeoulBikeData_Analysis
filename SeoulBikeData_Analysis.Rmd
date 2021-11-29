@@ -161,8 +161,8 @@ rm(Hours, meanBikeRentalPerHour, idx)
 
 Temperature measured in degree celsius (℃) at hour of observation.
 ```{r}
-summary(bike.data$Temperature)
-DailyMeanTemperature <- tapply(myData$Temperature, myData$Date, FUN=mean)
+summary(myData$Temperature)
+DailyMeanTemperature = tapply(myData$Temperature, myData$Date, FUN=mean)
 plot(DailyMeanTemperature, xlab ='Day')
 ```
 
@@ -170,8 +170,8 @@ plot(DailyMeanTemperature, xlab ='Day')
 
 Humidity measured in % at hour of observation.
 ```{r}
-summary(bike.data$Humidity)
-HourlyMeanHumidity <- tapply(myData$Humidity, myData$Hour, FUN=mean)
+summary(myData$Humidity)
+HourlyMeanHumidity = tapply(myData$Humidity, myData$Hour, FUN=mean)
 plot(HourlyMeanHumidity, xlab ='Hour')
 ```
 
@@ -179,20 +179,20 @@ plot(HourlyMeanHumidity, xlab ='Hour')
 
 Windspeed measured in metres/second (m/s) at hour of observation. 
 ```{r}
-summary(bike.data$Windspeed)
-hist(bike.data$Windspeed)
-DailyMeanWindspeed <- tapply(myData$Windspeed, myData$Date, FUN=mean)
-Mean <- tapply(myData$Windspeed, myData$Date, FUN=mean)
-index <- seq(1,353)
-fit <- lm(Mean~index)
+summary(myData$Windspeed)
+hist(myData$Windspeed)
+DailyMeanWindspeed = tapply(myData$Windspeed, myData$Date, FUN=mean)
+Mean = tapply(myData$Windspeed, myData$Date, FUN=mean)
+index = seq(1,353)
+fit = lm(Mean~index)
 plot(DailyMeanWindspeed, xlab='Day')
 abline(fit, col='red')
 'Correlation of windspeed against date:'
 cor(DailyMeanWindspeed, index)
-index2 <- seq(0,23)
+index2 = seq(0,23)
 'Correlation of windspeed against hour:'
 cor(HourlyMeanWindspeed, index2)
-HourlyMeanWindspeed <- tapply(myData$Windspeed, myData$Hour, FUN=mean)
+HourlyMeanWindspeed = tapply(myData$Windspeed, myData$Hour, FUN=mean)
 plot(HourlyMeanWindspeed, xlab='Hour')
 ```
 
@@ -202,7 +202,7 @@ The distance till which an object or light can be clearly seen, measured in metr
 ```{r}
 summary(myData$Visibility)
 hist(myData$Visibility)
-HourlyMeanVisibility <- tapply(myData$Visibility, myData$Hour, FUN=mean)
+HourlyMeanVisibility = tapply(myData$Visibility, myData$Hour, FUN=mean)
 plot(HourlyMeanVisibility, xlab ='Hour')
 ```
 
@@ -212,9 +212,9 @@ The amount of solar radiation experienced per square metre, measured in megajoul
 ```{r}
 summary(myData$SolarRadiation)
 myData$Month = format(myData$Date, "%b")
-MonthlyMeanSolarRadiation <- tapply(myData$SolarRadiation, myData$Month, FUN=mean)
+MonthlyMeanSolarRadiation = tapply(myData$SolarRadiation, myData$Month, FUN=mean)
 barplot(MonthlyMeanSolarRadiation, ylab='MonthlyMeanSolarRadiation', xlab ='Month')
-HourlyMeanSolarRadiation <- tapply(myData$SolarRadiation, myData$Hour, FUN=mean)
+HourlyMeanSolarRadiation = tapply(myData$SolarRadiation, myData$Hour, FUN=mean)
 plot(HourlyMeanSolarRadiation, xlab='Hour')
 ```
 
@@ -222,9 +222,9 @@ plot(HourlyMeanSolarRadiation, xlab='Hour')
 
 The rainfall experienced, measured in millimetres (mm), at hour of observation.
 ```{r}
-summary(bike.data$Rainfall)
+summary(myData$Rainfall)
 myData$Month = format(myData$Date, "%b")
-DailyMaxRF <- tapply(myData$Rainfall, myData$Month, FUN=max)
+DailyMaxRF = tapply(myData$Rainfall, myData$Month, FUN=max)
 barplot(DailyMaxRF, ylab='MonthlyMaxRainfall', xlab='Month')
 ```
 
@@ -232,9 +232,9 @@ barplot(DailyMaxRF, ylab='MonthlyMaxRainfall', xlab='Month')
 
 The snowfall experienced, measured in centimetres (cm), at hour of observation.
 ```{r}
-summary(bike.data$Snowfall)
+summary(myData$Snowfall)
 myData$Month = format(myData$Date, "%b")
-DailyMaxSF <- tapply(myData$Snowfall, myData$Month, FUN=max)
+DailyMaxSF = tapply(myData$Snowfall, myData$Month, FUN=max)
 barplot(DailyMaxSF, ylab='MonthlyMaxSnowfall', xlab='Month')
 ```
 
