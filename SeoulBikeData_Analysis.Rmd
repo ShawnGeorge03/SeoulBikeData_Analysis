@@ -63,4 +63,298 @@ issues and others.
 
 \newpage
 
+
+```{r echo=FALSE}
+
+library("readxl")
+myData = read.csv(file='SeoulBikeData.csv', check.names = F)
+
+colnames(myData) = c("Date", "RentedBikeCount", "Hour", "Temperature", "Humidity", "Windspeed", "Visibility", "DewPointTemp", "SolarRadiation", "Rainfall", "Snowfall", "Seasons", "Holiday", "FunctioningDay")
+n = dim(myData)[1]
+X0 = as.Date(myData$Date, format = "%d/%m/%Y")
+  
+Y = myData$RentedBikeCount
+X1 = myData$Hour
+X2 = myData$Temperature
+X3 = myData$Humidity
+X4 = myData$Windspeed
+X5 = myData$Visibility
+X6 = myData$DewPointTemp
+X7 = myData$SolarRadiation
+X8 = myData$Rainfall
+X9 = myData$Snowfall
+#X10 (seasons)comprises of 3 dummy variables, as done in lec 15.
+X10 = myData$Seasons
+X11 = myData$Holiday
+X12 = myData$FunctioningDay
+
+
+```
+
+```{r echo=FALSE}
+DayOfTheWeek = format(X0, "%a")
+weekends = as.numeric(as.numeric(DayOfTheWeek == "Sat") != as.numeric(DayOfTheWeek == "Sun"))
+# this assigns = 1 when DayOfTheWeek == "Sat" or "Sun"
+```
+
+```{r echo=FALSE}
+
+fit = lm (Y ~ X1 + X2 + X3 + X4 + X5 + X7 + X8 + X9)
+
+fit2 = lm (Y ~ X1 + X2 + X3 + X5 + X7 + X8 + X9)
+
+library(leaps)
+
+regsubset = regsubsets(Y ~ X1 + X2 + X3 + X4 + X5 + X7 + X8 + X9, nbest=4, data = myData)
+aprout = summary(regsubset)
+n = length(Y)
+p = apply(aprout$which, 1, sum)
+aprout$aic = aprout$bic - log(n) * p + 2 * p
+with(aprout, round(cbind(which, rsq, adjr2, cp, bic, aic), 3))
+
+```
+
+```{r echo=FALSE}
+model2 = lm(Y ~ X1 + X2 + X3 + X5 + X7 + X8 + X9)
+anova(fit2, model2)
+
+```
+ Remove windspeed (X4) due to p-value > alpha when we do anova()
+
+
+Now, to test for normality, we will check whether the normal Q-Q plot (normal probability plot) of the residual plot is close to the line y=x or not. 
+
+
+```{r echo=FALSE}
+
+qqnorm(fit$residuals)
+qqline(fit$residuals)
+
+```
+
+We see that the normal Q-Q plot deviates from the line y=x on either sides. Therefore, normality does not hold. Therefore, we will conduct a box-cox transformation to make sure the model 
+
+```{r echo=FALSE}
+library(MASS)
+
+myData_mod = subset(myData, myData$RentedBikeCount > 0) # deleting rows with Y <= 0 as box cox requires all response Yi's to be > 0
+
+Y = myData_mod$RentedBikeCount
+X1 = myData_mod$Hour
+X2 = myData_mod$Temperature
+X3 = myData_mod$Humidity
+X4 = myData_mod$Windspeed
+X5 = myData_mod$Visibility
+X6 = myData_mod$DewPointTemp
+X7 = myData_mod$SolarRadiation
+X8 = myData_mod$Rainfall
+X9 = myData_mod$Snowfall
+#X10 (seasons)comprises of 3 dummy variables, as done in lec 15.
+X10 = myData_mod$Seasons
+X11 = myData_mod$Holiday
+X12 = myData_mod$FunctioningDay
+
+X0 = as.Date(myData_mod$Date, format = "%d/%m/%Y")
+DayOfTheWeek = format(X0, "%a")
+weekends = as.numeric(as.numeric(DayOfTheWeek == "Sat") != as.numeric(DayOfTheWeek == "Sun"))
+# this assigns = 1 when DayOfTheWeek == "Sat" or "Sun"
+
+fit2 = lm (Y ~ X1 + X2 + X3 + X4 + X5 + X7 + X8 + X9)
+
+result = boxcox(fit2)
+
+lambda = result$x[which.max(result$y)]
+
+K2 = prod(Y^(1/length(Y))) # prod(y)^(1/length(y) = prod(y^(1/length(y))) -- check formula
+
+K1 = 1 / (lambda*K2^(lambda-1))
+
+yt = (((Y^lambda)-1)/K1)
+
+new_model = lm(yt ~ X1 + X2 + X3 + X4 + X5 + X7 + X8 + X9)
+
+
+qqnorm(new_model$residuals)
+qqline(new_model$residuals)
+
+
+```
+
+```{r echo=FALSE}
+
+
+plot(fit$fitted.values, fit$residuals)
+
+plot(new_model$fitted.values, new_model$residuals)
+
+hist(fit$residuals)
+hist(new_model$residuals)
+
+```
+
+
+Also,
+
+As there are 4 seasons, we will have 3 dummy variables.
+
+Let us take the Base category for X10: Autumn
+
+D1 = {
+1   , if season = Winter
+0   , o/w
+}
+
+D2 = {
+1   , if season = Spring
+0   , o/w
+}
+
+D3 = {
+1   , if season = Summer
+0   , o/w
+}
+
+```{r echo=FALSE}
+
+D1 = as.numeric(X10 == "Winter")
+D2 = as.numeric(X10 == "Spring")
+D3 = as.numeric(X10 == "Summer")
+
+model_with_season = lm(yt ~ X1 + X2 + X3 + X4 + X5 + X7 + X8 + X9 + D1 + D2 + D3
+                       + D1:X1 + D1:X2 + D1:X3 + D1:X4 + D1:X5 + D1:X7 + D1:X8 + D1:X9
+                       + D2:X1 + D2:X2 + D2:X3 + D2:X4 + D2:X5 + D2:X7 + D2:X8 + D2:X9
+                       + D3:X1 + D3:X2 + D3:X3 + D3:X4 + D3:X5 + D3:X7 + D3:X8 + D3:X9)
+
+F_test = (0.059039/25)/(0.005287)^2
+
+qf(0.05, 25, 8431)
+
+```
+
+The seasons should be kept in the model, as p-value << alpha. REJECT H_0 that states that seasons do not depend on the response variable Y.
+
+
+Now, we try to fit a model which includes the weekend variable as well as the seasons
+
+```{r echo=FALSE}
+
+
+model_with_weekend_var = lm(yt ~ X1 + X2 + X3 + X5 + X7 + X8 + X9
+                            + weekends:X1 + weekends:X2 + weekends:X3
+                            + weekends:X5 + weekends:X7
+                            + weekends:X8 + weekends:X9
+                            + D1 + D2 + D3 + weekends
+                            + D1:X1 + D1:X2 + D1:X3 + D1:X5 + D1:X7 + D1:X8 + D1:X9
+                            + D2:X1 + D2:X2 + D2:X3 + D2:X5 + D2:X7 + D2:X8 + D2:X9
+                            + D3:X1 + D3:X2 + D3:X3 + D3:X5 + D3:X7 + D3:X8 + D3:X9)
+
+james_model = lm(formula = yt ~ (X1 + X2 + X3 + X5 + X7 + X8 + X9) * (D1 + D2 + D3 + weekends))
+
+months = format(X0, "%b")
+
+m1 = as.numeric(months == "Jan")
+m2 = as.numeric(months == "Feb")
+m3 = as.numeric(months == "Mar")
+m4 = as.numeric(months == "Apr")
+m5 = as.numeric(months == "May")
+m6 = as.numeric(months == "Jun")
+m7 = as.numeric(months == "July")
+m8 = as.numeric(months == "Aug")
+m9 = as.numeric(months == "Sep")
+m10 = as.numeric(months == "Oct")
+m11 = as.numeric(months == "Nov")
+
+
+# LET BASE CATEGORY = December
+
+months_transformation_model = lm(formula = yt ~ (X1 + X2 + X3 + X5 + X7 + X8 + X9) * (weekends 
+                                                                                    + m1 + m2 + m3 + m4 + m5 + m6
+                                                                                    + m7 + m8 + m9 + m10 + m11)
+                               )
+```
+
+```{r echo=FALSE}
+
+h0 = as.numeric(X1 == 0)
+h1 = as.numeric(X1 == 1)
+h2 = as.numeric(X1 == 2)
+h3 = as.numeric(X1 == 3)
+h4 = as.numeric(X1 == 4)
+h5 = as.numeric(X1 == 5)
+h6 = as.numeric(X1 == 6)
+h7 = as.numeric(X1 == 7)
+h8 = as.numeric(X1 == 8)
+h9 = as.numeric(X1 == 9)
+h10 = as.numeric(X1 == 10)
+h11 = as.numeric(X1 == 11)
+h12 = as.numeric(X1 == 12)
+h13 = as.numeric(X1 == 13)
+h14 = as.numeric(X1 == 14)
+h15 = as.numeric(X1 == 15)
+h16 = as.numeric(X1 == 16)
+h17 = as.numeric(X1 == 17)
+h18 = as.numeric(X1 == 18)
+h19 = as.numeric(X1 == 19)
+h20 = as.numeric(X1 == 20)
+h21 = as.numeric(X1 == 21)
+h22 = as.numeric(X1 == 22)
+
+
+# LET BASE CATEGORY : X1 = 23
+
+hours_transformation_model = lm(formula = yt ~ (X2 + X3 + X5 + X7 + X8 + X9) * (weekends 
+                                                                                    + h0 + h1 + h2 + h3 + h4 + h5 
+                                                                                    + h6 + h7 + h8 + h9 + h10 + h11
+                                                                                    + h12 + h13 + h14 + h15 + h16 + h17
+                                                                                    + h18 + h19 + h20 + h21 + h22
+                                                                                    )
+                               )
+
+mon_hr_transformation_model = lm(formula = yt ~ (X2 + X3 + X5 + X7 + X8 + X9) * (weekends 
+                                                                                    + h0 + h1 + h2 + h3 + h4 + h5 + h6
+                                                                                    + h7 + h8 + h9 + h10 + h11
+                                                                                    + h12 + h13 + h14 + h15 + h16 + h17
+                                                                                    + h18 + h19 + h20 + h21 + h22
+                                                                                    + m1 + m2 + m3 + m4 + m5 + m6
+                                                                                    + m7 + m8 + m9 + m10 + m11
+                                                                                    )
+                               )
+
+
+#BEST MODEL UNTIL NOW BELOW:
+season_hr_model = lm(formula = yt ~ (X2 + X3 + X5 + X7 + X8 + X9) * (weekends 
+                                                                                    + h0 + h1 + h2 + h3 + h4 + h5 + h6
+                                                                                    + h7 + h8 + h9 + h10 + h11
+                                                                                    + h12 + h13 + h14 + h15 + h16 + h17
+                                                                                    + h18 + h19 + h20 + h21 + h22
+                                                                                    + D1 + D2 + D3
+                                                                                    ))
+
+#as the R^2 adj for below has a very low value, due to the drop in it we see that HOURS should be included in the model.
+month_season_model = lm(formula = yt ~ (X2 + X3 + X5 + X7 + X8 + X9) * (weekends    + m1 + m2 + m3 + m4 + m5 + m6
+                                                                                    + m7 + m8 + m9 + m10 + m11
+                                                                                    + D1 + D2 + D3
+                                                                                    ))
+```
+
+
+```{r echo=FALSE}
+
+X11 = myData_mod$Holiday
+
+isHoliday = as.numeric(X11 == "Holiday")
+
+season_hr_holiday_model = lm(formula = yt ~ (X2 + X3 + X5 + X7 + X8 + X9) * (weekends + isHoliday
+                                                                                    + h0 + h1 + h2 + h3 + h4 + h5 + h6
+                                                                                    + h7 + h8 + h9 + h10 + h11
+                                                                                    + h12 + h13 + h14 + h15 + h16 + h17
+                                                                                    + h18 + h19 + h20 + h21 + h22
+                                                                                    + D1 + D2 + D3
+                                                                                    ))
+
+```
+
+There is not a significant increase in the adjusted R-squared value when we include the Holiday dummy variable. Therefore, our final model is season_hr_model, Y = DO IN LATEX
+
+\newpage
 \textbf{\LARGE Bibliography}
