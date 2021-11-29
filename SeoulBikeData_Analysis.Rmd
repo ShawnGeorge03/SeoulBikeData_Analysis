@@ -191,8 +191,8 @@ abline(fit, col='red')
 cor(DailyMeanWindspeed, index)
 index2 = seq(0,23)
 'Correlation of windspeed against hour:'
-cor(HourlyMeanWindspeed, index2)
 HourlyMeanWindspeed = tapply(myData$Windspeed, myData$Hour, FUN=mean)
+cor(HourlyMeanWindspeed, index2)
 plot(HourlyMeanWindspeed, xlab='Hour')
 ```
 
