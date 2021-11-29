@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r include=FALSE}
 library("readxl")
+library("ggplot2")
 ```
 
 \newpage
@@ -106,8 +107,8 @@ knitr::kable(checkNullValues, format="simple", col.names = "Is Null")
 rm(checkNullValues)
 ```
 
-Since for each columns the output is FALSE, therefore all the columns of the data
-does not contain null or corrupted values.
+Since for each columns the output is FALSE, therefore all the columns of the 
+data does not contain null or corrupted values.
 
 Looking at the date we see a variable called _FunctioningDay_ which is there to
 indicate if the if the bike-sharing system is available or not and if we observe 
@@ -132,11 +133,114 @@ myData$Date = as.Date(myData$Date, format = "%d/%m/%Y")
 
 \textbf{Exploratory Data Analysis}
 
+# Holiday
+```{r}
+matrixOfMeanHrs = matrix(data=NA, nrow=24, ncol=2, dimnames=(list(c(1:24), unique(myData$Holiday))))
+
+for (holidayStatus in colnames(matrixOfMeanHrs)){
+  HolidayData = subset(myData[myData$Holiday == holidayStatus, ], select=c("Hour", "RentedBikeCount"))
+  for (hour in unique(myData[,"Hour"])){
+    matrixOfMeanHrs[hour + 1, holidayStatus] = mean(HolidayData[HolidayData["Hour"] == hour, "RentedBikeCount"])
+  }
+}
+
+MeanHrs = data.frame(c(1:24), matrixOfMeanHrs[, "Holiday"], matrixOfMeanHrs[, "No Holiday"])
+colnames(MeanHrs) = c("Hours", "Holiday", "NoHoliday")
+
+ggplot(MeanHrs, aes(x=Hours - 1)) + 
+  labs(x = "Hours", y = "Mean Rented Bikes Count", color="") +
+  geom_line(aes(y=Holiday, color="Holiday")) + 
+  geom_line(aes(y=NoHoliday, color="No Holiday"))
+rm(matrixOfMeanHrs, holidayStatus, HolidayData, hour, MeanHrs)
+```
 
 
+# Weekend
+```{r}
+myData$WeekDay = format(myData$Date, "%a")
+
+matrixOfMeanHrs = matrix(data=NA, nrow=24, ncol=7, dimnames=(list(c(1:24),unique(myData$WeekDay))))
+
+for (weekday in colnames(matrixOfMeanHrs)){
+  weekdayData = subset(myData[myData$WeekDay == weekday, ], select=c("Hour", "RentedBikeCount"))
+  for (hour in unique(myData[,"Hour"])){
+    matrixOfMeanHrs[hour + 1, weekday] = mean(weekdayData[weekdayData["Hour"] == hour, "RentedBikeCount"])
+  }
+}
+
+MeanHrs = data.frame(c(1:24), matrixOfMeanHrs[, "Mon"], 
+                              matrixOfMeanHrs[, "Tue"],
+                              matrixOfMeanHrs[, "Wed"],
+                              matrixOfMeanHrs[, "Thu"],
+                              matrixOfMeanHrs[, "Fri"],
+                              matrixOfMeanHrs[, "Sat"],
+                              matrixOfMeanHrs[, "Sun"])
+colnames(MeanHrs) = c("Hours", "Monday", "Tuesday", "Wednesday", "Thursday", 
+                      "Friday", "Saturday", "Sunday")
+
+ggplot(MeanHrs, aes(x=Hours - 1)) + 
+  geom_line(aes(y=Monday, color="Monday")) + 
+  geom_line(aes(y=Tuesday, color="Tuesday")) + 
+  geom_line(aes(y=Wednesday, color="Wenesday")) +
+  geom_line(aes(y=Thursday, color="Thursday")) + 
+  geom_line(aes(y=Friday, color="Friday")) + 
+  geom_line(aes(y=Saturday, color="Saturday")) +
+  geom_line(aes(y=Sunday, color="Sunday")) + 
+  scale_color_manual(values=c("#003f5c", "#374c80", "#7a5195", "#bc5090", 
+                              "#ef5675", "#ff764a", "#ffa600")) +
+  labs(x = "Hours", y = "Mean Rented Bikes Count", color='Day of Week')
+rm(matrixOfMeanHrs, weekday, weekdayData, hour, MeanHrs)
+```
+
+# Hours
+```{r}
+Hours = unique(myData$Hour)
+meanBikeRentalPerHour = rep(0, length(Hours))
+
+for (idx in seq(length(Hours))){
+  meanBikeRentalPerHour[idx] = mean(myData[myData$Hour == Hours[idx], "RentedBikeCount"])
+}
+
+ggplot(data=as.data.frame(meanBikeRentalPerHour)) +
+  geom_col(aes(x=Hours, y=meanBikeRentalPerHour, fill=Hours)) + 
+  scale_fill_gradient(low="grey",high="black") +
+  labs(x = "Hours", y = "Mean Rented Bikes Count")
+rm(Hours, meanBikeRentalPerHour, idx)
+
+```
+# Months
+```{r}
+myData$Month = format(myData$Date, "%b")
+
+Months = factor(unique(myData$Month), levels = month.abb)
+meanBikeRentalPerMonth = rep(0, length(Months))
+
+for (idx in seq(length(Months))){
+  meanBikeRentalPerMonth[idx] = mean(myData[myData$Month == Months[idx], "RentedBikeCount"])
+}
+
+ggplot(data=as.data.frame(meanBikeRentalPerMonth)) +
+  geom_col(aes(x=Months, y=meanBikeRentalPerMonth, fill=Months)) +
+  labs(x = "Months", y = "Mean Rented Bikes Count")
+rm(Months, meanBikeRentalPerMonth, idx)
+```
 
 
+# Seasons
+```{r}
+Seasons = unique(myData$Seasons)
+meanBikeRentalPerSeason = rep(0, length(Seasons))
 
+for (idx in seq(length(Seasons))){
+  meanBikeRentalPerSeason[idx] = mean(myData[myData$Seasons == Seasons[idx], "RentedBikeCount"])
+}
+
+ggplot(data=as.data.frame(meanBikeRentalPerSeason)) +
+  geom_col(aes(x=Seasons, y=meanBikeRentalPerSeason, fill=Seasons)) +
+  scale_fill_manual(values=c("#003f5c", "#7a5195", "#ef5675", "#ffa600")) +
+  labs(x = "Seasons", y = "Mean Rented Bikes Count")
+rm(Seasons, meanBikeRentalPerSeason, idx)
+```
 \newpage
 
 \textbf{\LARGE Bibliography}
