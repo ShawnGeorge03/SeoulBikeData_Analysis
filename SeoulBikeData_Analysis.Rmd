@@ -212,7 +212,9 @@ The amount of solar radiation experienced per square metre, measured in megajoul
 ```{r}
 summary(myData$SolarRadiation)
 myData$Month = format(myData$Date, "%b")
+Months = factor(unique(myData$Month), levels = month.abb)
 MonthlyMeanSolarRadiation = tapply(myData$SolarRadiation, myData$Month, FUN=mean)
+MonthlyMeanSolarRadiation = c(MonthlyMeanSolarRadiation[5], MonthlyMeanSolarRadiation[4], MonthlyMeanSolarRadiation[8], MonthlyMeanSolarRadiation[1], MonthlyMeanSolarRadiation[9], MonthlyMeanSolarRadiation[7], MonthlyMeanSolarRadiation[6], MonthlyMeanSolarRadiation[2], MonthlyMeanSolarRadiation[12], MonthlyMeanSolarRadiation[11], MonthlyMeanSolarRadiation[3])
 barplot(MonthlyMeanSolarRadiation, ylab='MonthlyMeanSolarRadiation', xlab ='Month')
 HourlyMeanSolarRadiation = tapply(myData$SolarRadiation, myData$Hour, FUN=mean)
 plot(HourlyMeanSolarRadiation, xlab='Hour')
@@ -222,9 +224,10 @@ plot(HourlyMeanSolarRadiation, xlab='Hour')
 
 The rainfall experienced, measured in millimetres (mm), at hour of observation.
 ```{r}
-summary(myData$Rainfall)
+summary(bike.data$Rainfall)
 myData$Month = format(myData$Date, "%b")
-DailyMaxRF = tapply(myData$Rainfall, myData$Month, FUN=max)
+DailyMaxRF <- tapply(myData$Rainfall, myData$Month, FUN=max)
+DailyMaxRF = c(DailyMaxRF[5], DailyMaxRF[4], DailyMaxRF[8], DailyMaxRF[1], DailyMaxRF[9], DailyMaxRF[7], DailyMaxRF[6], DailyMaxRF[2], DailyMaxRF[12], DailyMaxRF[11], DailyMaxRF[3])
 barplot(DailyMaxRF, ylab='MonthlyMaxRainfall', xlab='Month')
 ```
 
@@ -232,9 +235,11 @@ barplot(DailyMaxRF, ylab='MonthlyMaxRainfall', xlab='Month')
 
 The snowfall experienced, measured in centimetres (cm), at hour of observation.
 ```{r}
-summary(myData$Snowfall)
+summary(bike.data$Snowfall)
 myData$Month = format(myData$Date, "%b")
-DailyMaxSF = tapply(myData$Snowfall, myData$Month, FUN=max)
+sortedm <- myData[order(myData$Month),]
+DailyMaxSF <- tapply(myData$Snowfall, myData$Month, FUN=max)
+DailyMaxSF = c(DailyMaxSF[5], DailyMaxSF[4], DailyMaxSF[8], DailyMaxSF[1], DailyMaxSF[9], DailyMaxSF[7], DailyMaxSF[6], DailyMaxSF[2], DailyMaxSF[12], DailyMaxSF[11], DailyMaxSF[3])
 barplot(DailyMaxSF, ylab='MonthlyMaxSnowfall', xlab='Month')
 ```
 
