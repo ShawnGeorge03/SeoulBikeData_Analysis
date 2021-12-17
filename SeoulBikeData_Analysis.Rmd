@@ -2,28 +2,31 @@
 bibliography: [references.bib]
 nocite: '@*'
 csl: 'apa.csl'
+geometry: margin=1.5cm
 output:
   pdf_document:
     includes:
       before_body: title-page.sty
+
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r R Setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align='center', warning = FALSE, message = FALSE)
 ```
 
-```{r include=FALSE}
-library("readxl")
-library("ggplot2")
+```{r Instantiate Global Packages, include=FALSE}
+library(ggplot2)
+library(ggpubr)
+```
+
+```{r Load Data, include=FALSE}
+library(readxl)
+myData = read.csv(file='SeoulBikeData.csv', check.names = F)
+detach("package:readxl", unload=TRUE)
 ```
 
 \newpage
-\textbf{\LARGE Abstract}
-
-\newpage
-
-\newpage
-\textbf{\LARGE Introduction}
+## Introduction
 
 In the past decade, the usage of public rental bikes has increased in various 
 urban cities. In cities, rental bikes have become a crucial part of transportation
@@ -51,7 +54,7 @@ pollution, and high oil prices in Seoul, and to build a healthier society while
 enhancing the quality of life for Seoul citizens" (Seoul Metropolitan Government,
 2015). As of March 20, 2018, it has exceeded 620,000 memberships with 38% of the 
 users using the bikes during rush hour (Seoul Metropolitan Government, 2018). Due
-to the high usage of bikes in cities effective management of bike-sharing systems 
+to the high usage of bikes in cities, effective management of bike-sharing systems 
 must be developed to ensure the general public can access the service when required.
  
 The following data set from the Seoul Public Bike initiative provides various 
@@ -66,223 +69,123 @@ constrains them physically, particularly warm or warmth and high precipitation
 levels."(Mateo-Babiano et al., 2017) among other reasons like infrastructure 
 issues and others.
 
-\newpage
-\textbf{Data Preprocessing}
+We will do this by first cleaning the data, making visualizations to see trends 
+between variables and then generating and inspecting the model and summary statistics
+and using diagnostics to improve the model and deal with outliers and such. Some 
+variables will be left out due to high multicollinearity issues or not contributing
+much to the model which was found using leaps and AIC criterion.
 
-In this stage we are analyzing the data to verify that there are no missing values
+We start first with analyzing the data to verify that there are no missing values
 in any of the columns, change the format of certain variables to make it easier 
-to make visualization from the data.
+to make visualization from the data. After taking a look at the column names of 
+the data set we decide to change the names to be it easier to use. Then we ran a
+check on each column of the data set to look for missing values and found none.
+We also decided to drop the variable _FunctioningDay_ which is there to
+indicate if the bike-sharing system is available or not and if we observe 
+the number of rented bikes we see that it is 0 for 
+`r dim.data.frame(myData[myData$FunctioningDay=="No",])[1]` observations where 
+_FunctioningDay_ is "No". Since here we are trying to predict how many bikes will
+be rented when the system is open. For this reason, we can remove these observations.
+We also formatted the _Date_ column to by using a built-in date function to help
+when we need to make graphs and such.
 
-```{r}
-myData = read.csv(file='SeoulBikeData.csv', check.names = F)
-```
-
-```{r echo=FALSE}
-knitr::kable(x=colnames(myData), format="simple", col.names = "Column Names")
-```
-
-From above, we can see that the column names are quite messy and can make it difficult
-to use it later. So we will change the value of the columns to make it better.
-
-```{r}
+```{r Cleaning Data, echo=FALSE}
 colnames(myData) = c("Date", "RentedBikeCount", "Hour", "Temperature", "Humidity",
                      "Windspeed", "Visibility", "DewPointTemp", "SolarRadiation",
                      "Rainfall", "Snowfall", "Seasons", "Holiday", "FunctioningDay")
-```
-
-Now, we check if any of the columns of the data has any null values or corrupted 
-values. We use the R built-in function is.na() which will return a vector containing
-TRUE or FALSE based on the fact that it is null or not. We then use the any() to 
-find out if any of the values is TRUE.
-
-```{r}
 checkNullValues = sapply(colnames(myData), FUN = function(col.name) 
                                                   any(is.na(myData[,col.name])))
-```
-
-\newpage
-
-```{r echo=FALSE}
 knitr::kable(checkNullValues, format="simple", col.names = "Is Null")
 rm(checkNullValues)
-```
-
-Since for each columns the output is FALSE, therefore all the columns of the 
-data does not contain null or corrupted values.
-
-Looking at the date we see a variable called _FunctioningDay_ which is there to
-indicate if the if the bike-sharing system is available or not and if we observe 
-the amount of rented bikes we see that is 0 for all `r length(myData$Date)` days. 
-Since here we are trying to predict how many bikes will be rented when the system
-is open. For this reason we can remove these observations and drop that variable
-since it will always will be YES.
-
-```{r}
 myData = myData[myData$FunctioningDay=="Yes",]
 myData = within.data.frame(myData, rm(FunctioningDay))
-```
-
-Looking at the data, there is variable called _Date_ which records the Date when
-a bikes are rented. We can formatted the values to make use a built-in date function
-
-```{r}
 myData$Date = as.Date(myData$Date, format = "%d/%m/%Y")
 ```
 
 \newpage
 
-\textbf{Exploratory Data Analysis}
+## Exploratory Data Analysis
 
-# RentedBikeCount (Y)
+After cleaning the data set we have `r dim.data.frame(myData)[1]` observations.
+In this section, we will be taking a look at some of the 
+`r dim.data.frame(myData)[2]` variables and consider their effect on our
+response variable _RentedBikeCount_ and the relationship between explanatory 
+variables themselves. We will also make a decision with regard to which variables
+to keep for the model building.
 
-The number of bikes rented per hour.
-```{r echo=FALSE}
-summary(myData$RentedBikeCount)
-hist(myData$RentedBikeCount)
+### Correlation Heat Map
+
+```{r Correlation Map, echo=FALSE, fig.height = 3}
+library(reshape2)
+
+cor_dat = subset(myData, select=c("RentedBikeCount", "Temperature", "Humidity", "Windspeed", "Visibility", "DewPointTemp", "SolarRadiation", "Rainfall", "Snowfall"))
+cor_mat = round(cor(cor_dat),2)
+ggplot(melt(cor_mat), aes(Var2, Var1, fill = value)) +
+  geom_tile(color = "white") + 
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab",
+                       name="Pearson\nCorrelation") +
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 1, size = 10, hjust = 1),) +
+  geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank())
+rm(cor_dat, cor_mat)
+detach("package:reshape2", unload=TRUE)
+```
+From Figure 1 which is the Correlation Heat Map we can observe that the 
+correlation between the explanatory variables DewPointTemp and Temperature is 
+0.91 which is quite high and so one of them will be dropped to reduce 
+multicollinearity. We decided to drop DewPointTemp and kept Temperature as a
+possible variable to be used since it correlated much strongly to 
+RentedBikeCount. We can also notice that Visibility, SolarRadiation and Snowfall 
+correlate well with RentedBikeCount.
+
+### RentedBikeCount 
+
+The _RentedBikeCount_ is the response variable that we are trying to predict from 
+our model. This variable will be represented as the variable _Y_. From the summary
+of the variable, we see that at minimum there are 2 bikes rented with a maximum of 3556
+bikes rented at once and on average 729 bikes. From the histogram, we see that many
+of the observations are less than the average number of bikes represented by the blue 
+line rented and from the boxplot we see that number of bikes rent is pretty similar
+between each observation for the most part with some observations as outliers.
+
+```{r echo=FALSE, fig.height=1.5}
+hp = ggplot(myData, aes(x=RentedBikeCount)) + 
+  geom_histogram(color="black", fill="white", bins=50) +
+  geom_vline(aes(xintercept=mean(RentedBikeCount)),
+            color="red", linetype="solid", size=1) + 
+  labs(x = "# Rented Bikes")
+
+bxp = ggplot(myData ,mapping = aes(y = RentedBikeCount, group=1)) + 
+  geom_boxplot() + labs(y = "# Rented Bikes")
+
+ggarrange(hp, bxp, ncol=2, nrow=1)
+
+rm(hp, bxp)
 ```
 
-# Hours (X1: h0-h22)
+### Date 
 
-Categorical variable corresponding to what hour of the day it is. Value range from 0 to 23. Base category will be set to hour 23.
-```{r}
-Hours = unique(myData$Hour)
-meanBikeRentalPerHour = rep(0, length(Hours))
-for (idx in seq(length(Hours))){
-  meanBikeRentalPerHour[idx] = mean(myData[myData$Hour == Hours[idx], "RentedBikeCount"])
-}
-ggplot(data=as.data.frame(meanBikeRentalPerHour)) +
-  geom_col(aes(x=Hours, y=meanBikeRentalPerHour, fill=Hours)) + 
-  scale_fill_gradient(low="grey",high="black") +
-  labs(x = "Hours", y = "Mean Rented Bikes Count")
-rm(Hours, meanBikeRentalPerHour, idx)
-```
+The _Date_ column of the data set stores the date during which this observation was 
+taken and is in the format of (year-month-day). This in its self will not be 
+providing much information but breaking the date into specific days of the week can help
+to see the general trend of usage throughout a week and specifically the demand
+weekdays and weekends. So after making a graph that plots the average number of 
+bikes used per hour for each day of the week we can see that the demand change 
+significantly based on if it is a weekday or weekend. The two peaks in the weekday 
+can be explained by the start of workday and school which is approximately 8 AM
+and the end of the workday and school which is approximately 5 PM on average.
+Since there is a significant change in demand based on if it is a weekend or 
+not we will make a categorical variable where 1 represents weekend and 0 
+represents not weekend with a base category that will be set to not weekend.
 
-# Temperature (X2)
-
-Temperature measured in degree celsius (℃) at hour of observation.
-```{r}
-summary(myData$Temperature)
-DailyMeanTemperature = tapply(myData$Temperature, myData$Date, FUN=mean)
-plot(DailyMeanTemperature, xlab ='Day')
-```
-
-# Humidity (X3)
-
-Humidity measured in % at hour of observation.
-```{r}
-summary(myData$Humidity)
-HourlyMeanHumidity = tapply(myData$Humidity, myData$Hour, FUN=mean)
-plot(HourlyMeanHumidity, xlab ='Hour')
-```
-
-# WindSpeed (X4)
-
-Windspeed measured in metres/second (m/s) at hour of observation. 
-```{r}
-summary(myData$Windspeed)
-hist(myData$Windspeed)
-DailyMeanWindspeed = tapply(myData$Windspeed, myData$Date, FUN=mean)
-Mean = tapply(myData$Windspeed, myData$Date, FUN=mean)
-index = seq(1,353)
-fit = lm(Mean~index)
-plot(DailyMeanWindspeed, xlab='Day')
-abline(fit, col='red')
-'Correlation of windspeed against date:'
-cor(DailyMeanWindspeed, index)
-index2 = seq(0,23)
-'Correlation of windspeed against hour:'
-HourlyMeanWindspeed = tapply(myData$Windspeed, myData$Hour, FUN=mean)
-cor(HourlyMeanWindspeed, index2)
-plot(HourlyMeanWindspeed, xlab='Hour')
-```
-
-# Visibility (X5)
-
-The distance till which an object or light can be clearly seen, measured in metres (m) at hour of observation.
-```{r}
-summary(myData$Visibility)
-hist(myData$Visibility)
-HourlyMeanVisibility = tapply(myData$Visibility, myData$Hour, FUN=mean)
-plot(HourlyMeanVisibility, xlab ='Hour')
-```
-
-# Solar Radiation (X7)
-
-The amount of solar radiation experienced per square metre, measured in megajoules/metre^2 (Mj/m^2) at hour of observation.
-```{r}
-summary(myData$SolarRadiation)
-myData$Month = format(myData$Date, "%b")
-Months = factor(unique(myData$Month), levels = month.abb)
-MonthlyMeanSolarRadiation = tapply(myData$SolarRadiation, myData$Month, FUN=mean)
-MonthlyMeanSolarRadiation = c(MonthlyMeanSolarRadiation[5], MonthlyMeanSolarRadiation[4], MonthlyMeanSolarRadiation[8], MonthlyMeanSolarRadiation[1], MonthlyMeanSolarRadiation[9], MonthlyMeanSolarRadiation[7], MonthlyMeanSolarRadiation[6], MonthlyMeanSolarRadiation[2], MonthlyMeanSolarRadiation[12], MonthlyMeanSolarRadiation[11], MonthlyMeanSolarRadiation[3])
-barplot(MonthlyMeanSolarRadiation, ylab='MonthlyMeanSolarRadiation', xlab ='Month')
-HourlyMeanSolarRadiation = tapply(myData$SolarRadiation, myData$Hour, FUN=mean)
-plot(HourlyMeanSolarRadiation, xlab='Hour')
-```
-
-# Rainfall (X8)
-
-The rainfall experienced, measured in millimetres (mm), at hour of observation.
-```{r}
-summary(bike.data$Rainfall)
-myData$Month = format(myData$Date, "%b")
-DailyMaxRF <- tapply(myData$Rainfall, myData$Month, FUN=max)
-DailyMaxRF = c(DailyMaxRF[5], DailyMaxRF[4], DailyMaxRF[8], DailyMaxRF[1], DailyMaxRF[9], DailyMaxRF[7], DailyMaxRF[6], DailyMaxRF[2], DailyMaxRF[12], DailyMaxRF[11], DailyMaxRF[3])
-barplot(DailyMaxRF, ylab='MonthlyMaxRainfall', xlab='Month')
-```
-
-# Snowfall (X9)
-
-The snowfall experienced, measured in centimetres (cm), at hour of observation.
-```{r}
-summary(bike.data$Snowfall)
-myData$Month = format(myData$Date, "%b")
-sortedm <- myData[order(myData$Month),]
-DailyMaxSF <- tapply(myData$Snowfall, myData$Month, FUN=max)
-DailyMaxSF = c(DailyMaxSF[5], DailyMaxSF[4], DailyMaxSF[8], DailyMaxSF[1], DailyMaxSF[9], DailyMaxSF[7], DailyMaxSF[6], DailyMaxSF[2], DailyMaxSF[12], DailyMaxSF[11], DailyMaxSF[3])
-barplot(DailyMaxSF, ylab='MonthlyMaxSnowfall', xlab='Month')
-```
-
-# Seasons (X10: D1, D2, D3)
-
-Categorical variable for current season in Seoul (Winter, Spring, Summer, Autumn) at hour of observation. Base category will be set to Autumn.
-```{r}
-Seasons = unique(myData$Seasons)
-meanBikeRentalPerSeason = rep(0, length(Seasons))
-for (idx in seq(length(Seasons))){
-  meanBikeRentalPerSeason[idx] = mean(myData[myData$Seasons == Seasons[idx], "RentedBikeCount"])
-}
-ggplot(data=as.data.frame(meanBikeRentalPerSeason)) +
-  geom_col(aes(x=Seasons, y=meanBikeRentalPerSeason, fill=Seasons)) +
-  scale_fill_manual(values=c("#003f5c", "#7a5195", "#ef5675", "#ffa600")) +
-  labs(x = "Seasons", y = "Mean Rented Bikes Count")
-rm(Seasons, meanBikeRentalPerSeason, idx)
-```
-
-# Holiday (X11)
-
-Categorical variable for whether or not the day is a holiday. 1 for holiday, 0 for not holiday. Base category will be set to no holiday.
-```{r}
-matrixOfMeanHrs = matrix(data=NA, nrow=24, ncol=2, dimnames=(list(c(1:24), unique(myData$Holiday))))
-for (holidayStatus in colnames(matrixOfMeanHrs)){
-  HolidayData = subset(myData[myData$Holiday == holidayStatus, ], select=c("Hour", "RentedBikeCount"))
-  for (hour in unique(myData[,"Hour"])){
-    matrixOfMeanHrs[hour + 1, holidayStatus] = mean(HolidayData[HolidayData["Hour"] == hour, "RentedBikeCount"])
-  }
-}
-MeanHrs = data.frame(c(1:24), matrixOfMeanHrs[, "Holiday"], matrixOfMeanHrs[, "No Holiday"])
-colnames(MeanHrs) = c("Hours", "Holiday", "NoHoliday")
-ggplot(MeanHrs, aes(x=Hours - 1)) + 
-  labs(x = "Hours", y = "Mean Rented Bikes Count", color="") +
-  geom_line(aes(y=Holiday, color="Holiday")) + 
-  geom_line(aes(y=NoHoliday, color="No Holiday"))
-rm(matrixOfMeanHrs, holidayStatus, HolidayData, hour, MeanHrs)
-```
-
-# Weekend (weekends)
-
-Categorical variable for whether or not the day is a weekend. 1 for weekend, 0 for not weekend. Base category will be set to not weekend.
-```{r}
+```{r Day of Week Demand, echo=FALSE, fig.width = 8, fig.height = 2.5}
 myData$WeekDay = format(myData$Date, "%a")
 matrixOfMeanHrs = matrix(data=NA, nrow=24, ncol=7, dimnames=(list(c(1:24),unique(myData$WeekDay))))
 for (weekday in colnames(matrixOfMeanHrs)){
@@ -311,45 +214,597 @@ ggplot(MeanHrs, aes(x=Hours - 1)) +
   scale_color_manual(values=c("#003f5c", "#374c80", "#7a5195", "#bc5090", 
                               "#ef5675", "#ff764a", "#ffa600")) +
   labs(x = "Hours", y = "Mean Rented Bikes Count", color='Day of Week')
-rm(matrixOfMeanHrs, weekday, weekdayData, hour, MeanHrs)
-```
 
-
-# Months (m1-m11)
-
-Categorical variable for which month it is. Base category will be set to december.
-```{r}
-myData$Month = format(myData$Date, "%b")
-Months = factor(unique(myData$Month), levels = month.abb)
-meanBikeRentalPerMonth = rep(0, length(Months))
-for (idx in seq(length(Months))){
-  meanBikeRentalPerMonth[idx] = mean(myData[myData$Month == Months[idx], "RentedBikeCount"])
+#Create Weekend Indicator
+myData$Weekend = 0
+for(i in seq(1:length(myData$Weekend))){
+  if(myData[i,"WeekDay"] %in% c("Sun","Sat")){
+    myData[i,"Weekend"] = 1
+  }
 }
-ggplot(data=as.data.frame(meanBikeRentalPerMonth)) +
-  geom_col(aes(x=Months, y=meanBikeRentalPerMonth, fill=Months)) +
-  labs(x = "Months", y = "Mean Rented Bikes Count")
-rm(Months, meanBikeRentalPerMonth, idx)
+
+rm(matrixOfMeanHrs, weekday, weekdayData, hour, MeanHrs, i)
 ```
+
+
+### Hours
+
+The _Hour_ column of the data set records the hour of the day this observation was 
+taken and is in the format of 24 hrs ranging from 0 to 23. As mentioned when we discussed
+the _Date_ column, we saw that the hour played a huge role in the demand
+for bikes throughout the day. From the graphs below we also see that
+combining the _Weekend_ and _Hour_ variables shows more information about the fluctuating
+demaand of bike usage. So, we make Hour into a categorical variable corresponding
+to a specific hour of the day with the base category being Hour 23.
+```{r Hours vs. Mean Rented Bikes Count, echo=FALSE, fig.align='center', fig.width = 10, fig.height = 3.5}
+Hours = unique(myData$Hour)
+
+meanBikeRentalPerHourOnWeekend = rep(0, length(Hours))
+for (idx in seq(length(Hours))){
+  myDataWeekday = myData[myData$Weekend == 1,]
+  meanBikeRentalPerHourOnWeekend[idx] = mean(myDataWeekday[myDataWeekday$Hour == Hours[idx], "RentedBikeCount"])
+}
+hour_weekend = ggplot(mapping = aes(y=meanBikeRentalPerHourOnWeekend,x=Hours, fill=Hours)) +
+  geom_col() + 
+  scale_fill_gradient(low="grey",high="black") +
+  theme(legend.position = "none") +
+  labs(x = "Hours", y = "Mean Rented Bikes Count on Weekend")
+
+meanBikeRentalPerHourOnWeekday = rep(0, length(Hours))
+for (idx in seq(length(Hours))){
+  myDataWeekend = myData[myData$Weekend == 0,]
+  meanBikeRentalPerHourOnWeekday[idx] = mean(myDataWeekend[myDataWeekend$Hour == Hours[idx], "RentedBikeCount"])
+}
+hour_weekday = ggplot(mapping = aes(y=meanBikeRentalPerHourOnWeekday,x=Hours, fill=Hours)) + 
+  geom_col() + 
+  scale_fill_gradient(low="grey",high="black") +
+  theme(legend.position = "none") +
+  labs(x = "Hours", y = "Mean Rented Bikes Count on Weekday")
+
+ggarrange(hour_weekend, hour_weekday, ncol=2, nrow=1)
+rm(Hours, meanBikeRentalPerHourOnWeekend, myDataWeekday, hour_weekend, meanBikeRentalPerHourOnWeekday, myDataWeekend, idx, hour_weekday)
+```
+
+### Temperature
+
+Temperature was measured in degree Celsius (℃) at the hour of observation. The  lowest 
+temperature reached was -17.80 ℃ and the highest it went was 39.40 ℃  and on
+average the temperature was at 12.77 ℃. From the graph on the left, we can see 
+the temperature has a daily trend and with the graph on the right we can see
+that there is an association between Temperature and RentedBikeCount whereas generally an increase in 
+Temperature increases the number of bikes rented.
+
+```{r AverageDaily Temp & Temp vs. RentedBikeCount, echo=FALSE, fig.align='center', fig.width = 10, fig.height = 3}
+DailyMeanTemperature = aggregate(Temperature ~ Date, myData, mean)
+AverageTemp_Date = ggplot(DailyMeanTemperature ,mapping = aes(y=Temperature,x=Date)) +
+  geom_point() +
+  geom_hline(aes(yintercept=0), color="black", linetype="solid", size=1) 
+RentedBikeCount_Temp = ggplot(myData,mapping = aes(y=RentedBikeCount,x=Temperature)) + geom_point()
+ggarrange(AverageTemp_Date, RentedBikeCount_Temp, ncol = 2, nrow = 1)
+rm(DailyMeanTemperature, AverageTemp_Date, RentedBikeCount_Temp)
+```
+
+### Humidity
+
+Humidity was measured in % at the hour of observation. In regards to the values, we have 0% as the lowest and 98% as the highest
+for Humidity with an average of 57 %. From the graph on the
+left, we can see that Humidity has an hourly trend and there was no noticeable Daily
+and Monthly Humidity Trend. In the graph on the right, we can see that the number of 
+bikes rented varies slightly based on the graph.
+```{r AverageHourly Humid & Humid vs. RentedBikeCount, echo=FALSE, fig.align='center', fig.width = 10, fig.height = 3}
+HourlyMeanHumidity = aggregate(Humidity ~ Hour, myData, mean)
+
+AverageHumid_Hour = ggplot(HourlyMeanHumidity ,mapping = aes(y=Humidity,x=Hour)) + geom_point()
+RentedBikeCount_Humid = ggplot(myData,mapping = aes(y=RentedBikeCount,x=Humidity)) + geom_point()
+ggarrange(AverageHumid_Hour, RentedBikeCount_Humid, ncol = 2, nrow = 1)
+
+rm(HourlyMeanHumidity, AverageHumid_Hour, RentedBikeCount_Humid)
+```
+
+### Visibility
+
+The distance till which an object or light can be clearly seen is measured in 
+meters (m) at the hour of observation. The average distance visible for a biker is 1690 m
+and it can go down as low as 27 m and as high as 2000 m. From the graph on the
+left, we can see that Visibility has an hourly trend and that there was no noticeable Daily
+and/or Monthly Visibility Trend. In the graph on the right, we can see that the number of 
+bikes rented varies based on the Visibility variable and if we go left to right
+the number of bikes rented increases as Visibility increases.
+```{r AverageHourly Visi & Visi vs. RentedBikeCount, echo=FALSE, fig.align='center', fig.width = 10, fig.height = 3}
+HourlyMeanVisibility = aggregate(Visibility ~ Hour, myData, mean)
+
+AverageVisi_Hour = ggplot(HourlyMeanVisibility ,mapping = aes(y=Visibility,x=Hour)) + geom_point()
+RentedBikeCount_Visi = ggplot(myData,mapping = aes(y=RentedBikeCount,x=Visibility)) + geom_point()
+ggarrange(AverageVisi_Hour, RentedBikeCount_Visi, ncol = 2, nrow = 1)
+
+rm(HourlyMeanVisibility,AverageVisi_Hour,RentedBikeCount_Visi)
+```
+
+### Solar Radiation
+
+The _SolarRadiation_ column in the data set is the solar radiation experienced, 
+measured in $\frac{Mj}{m^2}$, at the hour of observation. On average according to 
+this data set Seoul gets 0.5679 $\frac{Mj}{m^2}$ with a maximum of 3.52 
+$\frac{Mj}{m^2}$ of solar radiation for one observation. 
+From the graph on the left, we can see that solar radiation throughout the 
+year and is quite consistent. Looking at its relationship with 
+RentedBikeCount we see that 
+```{r echo=FALSE, fig.align='center', fig.width = 10, fig.height = 3.5, out.height="20%"}
+myData$Month = format(myData$Date, "%b")
+MonthlyMeanSolarRadiation = aggregate(SolarRadiation ~ Month, myData, mean)
+
+MonthlyMean_SolarRadiation = ggplot(MonthlyMeanSolarRadiation, aes(x=factor(Month, levels = month.abb), y=SolarRadiation, fill=factor(Month, levels = month.abb))) + 
+  geom_col() + 
+  labs(x="Month", y="Monthly Solar Radiation") + 
+  guides(fill=guide_legend(title="Months"))
+RentedBikeCount_SR = ggplot(myData,mapping = aes(y=RentedBikeCount,x=SolarRadiation)) + geom_point()
+ggarrange(MonthlyMean_SolarRadiation, RentedBikeCount_SR, ncol = 2, nrow = 1)
+
+rm(MonthlyMeanSolarRadiation, MonthlyMean_SolarRadiation, RentedBikeCount_SR)
+```
+
+### Rainfall
+
+The _Rainfall_ column in the data set is the rainfall experienced, measured in 
+millimetres (mm), at the hour of observation. On average according to this data set
+Seoul gets 0.15 mm with a maximum of 35 mm of rainfall for one observation. 
+From the graph on the left, we can see that rainfall throughout the year with the
+most amount falling in the month of May. Looking at its relationship with 
+RentedBikeCount we see that it has quite the effect by decreasing the number of 
+bikes rented on those days.
+```{r Monthly Max Rainfall, echo=FALSE, fig.align='center', fig.width = 10, fig.height = 3.5, out.height="20%"}
+MonthlyMaxRF = aggregate(Rainfall ~ Month, myData, max)
+
+MaxRF_Month = ggplot(MonthlyMaxRF, aes(x=factor(Month, levels = month.abb), y=Rainfall, fill=factor(Month, levels = month.abb))) + 
+  geom_col() + 
+  labs(x="Month", y="Monthly Rainfall") + 
+  guides(fill=guide_legend(title="Months"))
+RentedBikeCount_RF = ggplot(myData,mapping = aes(y=RentedBikeCount,x=Rainfall)) + geom_point()
+ggarrange(MaxRF_Month, RentedBikeCount_RF, ncol = 2, nrow = 1)
+
+rm(MonthlyMaxRF, MaxRF_Month, RentedBikeCount_RF)
+```
+
+### Snowfall
+
+The _Snowfall_ column in the data set is the snowfall experienced, measured in 
+centimetres (cm), at the hour of observation. On average according to this data set
+Seoul gets 0.08 cm or 0.8 mm with a maximum of 8.8 cm of snowfall for one 
+observation. From the graph on the left, we can see that Snowfall only falls in 
+the first 2 and last 2 months of the year and mostly comes down during November. 
+Looking at its relationship with RentedBikeCount we see that it has quite the 
+effect of decreasing the number of bikes rented on those days.
+```{r Monthly Max Snowfall, echo=FALSE, fig.align='center', fig.width = 10, fig.height = 3.5, out.height="20%"}
+MonthlyMaxSF = aggregate(Snowfall ~ Month, myData, max)
+
+MaxSnowfall_Month = ggplot(MonthlyMaxSF, aes(x=factor(Month, levels = month.abb), y=Snowfall, fill=factor(Month, levels = month.abb))) + 
+  geom_col() + 
+  labs(x="Month", y="Monthly Snowfall") + 
+  guides(fill=guide_legend(title="Months"))
+RentedBikeCount_Snowfall = ggplot(myData,mapping = aes(y=RentedBikeCount,x=Snowfall)) + geom_point()
+ggarrange(MaxSnowfall_Month, RentedBikeCount_Snowfall, ncol = 2, nrow = 1)
+
+rm(MonthlyMaxSF, MaxSnowfall_Month, RentedBikeCount_Snowfall)
+```
+
+### Seasons
+
+_Season_ is a column in the data set that states what Season was this observation
+taken in. From the graph below we can see that the Season most definitely affects the number of bikes rented on average. In the Winter season, you see
+the lowest number of bikes rented and in the Summer season, you see the highest
+number of bikes rented. Autumn and Spring seasons on the other hand are relatively close to each
+other. Adding the _Seasons_ to the model as a categorical variable for the current
+season in Seoul (Winter, Spring, Summer, Autumn) with the base category being set 
+to Autumn will make an effect on the model.
+```{r Mean Bike Count Vs. Seasons, echo=FALSE, fig.align='center', fig.width = 5, fig.height = 2.5 ,out.height="20%"}
+Seasons = unique(myData$Seasons)
+meanBikeRentalPerSeason = rep(0, length(Seasons))
+for (idx in seq(length(Seasons))){
+  meanBikeRentalPerSeason[idx] = mean(myData[myData$Seasons == Seasons[idx], "RentedBikeCount"])
+}
+ggplot(data=as.data.frame(meanBikeRentalPerSeason)) +
+  geom_col(aes(x=Seasons, y=meanBikeRentalPerSeason, fill=Seasons)) +
+  scale_fill_manual(values=c("#003f5c", "#7a5195", "#ef5675", "#ffa600")) +
+  labs(x = "Seasons", y = "Mean Rented Bikes Count")
+rm(Seasons, meanBikeRentalPerSeason, idx)
+```
+
+### Holiday
+
+_Holiday_ is a column in the data set that states if that _Date_ is a "Holiday" 
+or "No Holiday". Looking at the graph below we see that is quite similar to the
+day of the week above in the _Date_ section. Therefore, adding the _Holiday_
+variable to the model will most likely add no extra information and so it will 
+be excludedhe model will most likely add no extra information and so it will 
+be excluded
+```{r Mean Bike Count Vs. Holiday Status, echo=FALSE, fig.width = 10, fig.height = 2.5,}
+matrixOfMeanHrs = matrix(data=NA, nrow=24, ncol=2, dimnames=(list(c(1:24), unique(myData$Holiday))))
+for (holidayStatus in colnames(matrixOfMeanHrs)){
+  HolidayData = subset(myData[myData$Holiday == holidayStatus, ], select=c("Hour", "RentedBikeCount"))
+  for (hour in unique(myData[,"Hour"])){
+    matrixOfMeanHrs[hour + 1, holidayStatus] = mean(HolidayData[HolidayData["Hour"] == hour, "RentedBikeCount"])
+  }
+}
+MeanHrs = data.frame(c(1:24), matrixOfMeanHrs[, "Holiday"], matrixOfMeanHrs[, "No Holiday"])
+colnames(MeanHrs) = c("Hours", "Holiday", "NoHoliday")
+ggplot(MeanHrs, aes(x=Hours - 1)) + 
+  labs(x = "Hours", y = "Mean Rented Bikes Count", color="") +
+  geom_line(aes(y=Holiday, color="Holiday")) + 
+  geom_line(aes(y=NoHoliday, color="No Holiday"))
+rm(matrixOfMeanHrs, holidayStatus, HolidayData, hour, MeanHrs)
+``` 
 
 \newpage
 
-\textbf{Removed Variables}
+## Model Building & Validation
 
-FunctioningDay and DewPointTemp will not be considered in the model.
+```{r Gather Continuous Variables, include=FALSE}
+Y = myData$RentedBikeCount
+X1 = myData$Hour
+X2 = myData$Temperature
+X3 = myData$Humidity
+X4 = myData$Windspeed
+X5 = myData$Visibility
+X7 = myData$SolarRadiation
+X8 = myData$Rainfall
+X9 = myData$Snowfall
 
-# FunctioningDay (X12)
-
-Categorical variable. 1 if bikes are funcitoning, 0 if not.
-Days when bikes are not functional will be guaranteed to produce observations of 0 bikes rented per hour. Therefore, there is no need to include this variable in our model.
-
-# DewPointTemp (X6)
-
-The temperature at dew point measured in celsius (°C) at hour of observation.
-Due to a high correlation between DewPointTemp and Temperature it is redundant to include both DewPointTemp and Temeprature in the model.
-```{r}
-cor(myData$Temperature, myData$DewPointTemp)
+weekends = myData$Weekend
 ```
+
+We start with building the model with all the given variables: X0 (Date), X1(Hour),
+X2(Temperature), X3(Humidity), X4(Windspeed), X5(Visibility), X7(Solar Radiation),
+X8(Rainfall), X9(Snowfall), X10(Seasons), X11(Holiday), and the weekend variable.
+
+After inspecting the cleaned data, our initial assumption was to classify 
+X10 (Seasons), and the weekend variable as categorical(binary) variables, 
+while the rest should be classified as continuous variables. 
+
+Then, by using the package leaps() we find the best subset of continuous variables.
+
+```{r Finding best subset of Continuous Variables, include=FALSE}
+library(leaps)
+regsubset = regsubsets(Y ~ X1 + X2 + X3 + X4 + X5 + X7 + X8 + X9, nbest=4, data = myData)
+aprout = summary(regsubset)
+n = length(Y)
+p = apply(aprout$which, 1, sum)
+aprout$aic = aprout$bic - log(n) * p + 2 * p
+with(aprout, round(cbind(which, rsq, adjr2, cp, bic, aic), 3))
+rm(regsubset, aprout, n, p)
+```
+
+After running it we found that the best subset of continuous variables is all of
+them except X4 which is windspeed since it had the lowest AIC of -6061.978.
+
+We now decide to include the categorical variables with the model, which are 
+and Weekends. Then, based on several iterations of the ANOVA Table 
+outputs, we tried to fit a model that gave us a considerably good Adjusted 
+R-squared value as well as a good VIF value, among other considerations for 
+fitting the best model. 
+
+After several iterations and inspections, we came up with the following assumptions:
+
+  1. The Seasons and Weekend variables should be included in the model.
+  2. Convert the Hour variable into a categorical variable and use it with 
+  the Seasons categorical variable.
+
+```{r include=FALSE}
+library(MASS)
+
+D1 = as.numeric(myData$Seasons == "Winter")
+D2 = as.numeric(myData$Seasons == "Spring")
+D3 = as.numeric(myData$Seasons == "Summer")
+
+h0 = as.numeric(X1 == 0)
+h1 = as.numeric(X1 == 1)
+h2 = as.numeric(X1 == 2)
+h3 = as.numeric(X1 == 3)
+h4 = as.numeric(X1 == 4)
+h5 = as.numeric(X1 == 5)
+h6 = as.numeric(X1 == 6)
+h7 = as.numeric(X1 == 7)
+h8 = as.numeric(X1 == 8)
+h9 = as.numeric(X1 == 9)
+h10 = as.numeric(X1 == 10)
+h11 = as.numeric(X1 == 11)
+h12 = as.numeric(X1 == 12)
+h13 = as.numeric(X1 == 13)
+h14 = as.numeric(X1 == 14)
+h15 = as.numeric(X1 == 15)
+h16 = as.numeric(X1 == 16)
+h17 = as.numeric(X1 == 17)
+h18 = as.numeric(X1 == 18)
+h19 = as.numeric(X1 == 19)
+h20 = as.numeric(X1 == 20)
+h21 = as.numeric(X1 == 21)
+h22 = as.numeric(X1 == 22)
+
+season_hr_untransformed = lm(formula = Y ~ (X2 + X3 + X5 + X7 + X8 + X9) *
+                              ( h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9
+                                 + h10 + h11 + h12 + h13 + h14 + h15 + h16 + h17
+                                 + h18 + h19 + h20 + h21 + h22 + D1 + D2 + D3))
+
+result = boxcox(season_hr_untransformed)
+lambda = result$x[which.max(result$y)]
+K2 = prod(Y^(1/length(Y))) 
+K1 = 1 / (lambda*K2^(lambda-1))
+yt = (((Y^lambda)-1)/K1)
+
+
+season_hr_model = lm(formula = yt ~ (X2 + X3 + X5 + X7 + X8 + X9) *
+                              (weekends+ h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7 
+                               + h8 + h9 + h10 + h11 + h12 + h13 + h14 + h15 
+                               + h16 + h17 + h18 + h19 + h20 + h21 + h22 + D1 
+                               + D2 + D3))
+
+rm(season_hr_untransformed, result, lambda, K2, K1, yt, season_hr_model)
+```
+  
+  
+Even after editing our model, we encountered an issue with *EXTREMELY HIGH* 
+multicollinearity. (Did this by calling VIF() function)
+
+So, to solve this, we took out the NA rows in the summary statistics of the model, 
+as well as inspected rows with high P-value. However, instead of removing specific 
+interactions of X7 with hours, we decided to remove interactions of Hours with any 
+variable whenever we encountered a significant number of NA values or high P-values 
+in the summary statistics output. We iteratively conducted this process and checked
+the VIF output. We needed to find a model with VIF values less than 10.
+
+```{r include=FALSE}
+almost_best_model = lm(Y ~ (X8):(weekends) + X5 + X9 + X8 + X3 + X2 + X7 
+                       + X7:(weekends + D1 + D2 + D3) + (X2):(weekends) 
+                       + weekends:(h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9
+                                   + h10 + h11 + h12 + h13+ h14 + h15 + h16 + h17
+                                   + h18 + h19 + h20 + h21 + h22) 
+                       + (h0 + h1 + h2 + h3 + h4 + h5 
+                                   + h6 + h7 + h8 + h9 + h10 + h11 + h12 + h13 
+                                   + h14 + h15 + h16 + h17 + h18 + h19 + h20 
+                                   + h21 + h22), myData)
+
+yt = Y^0.5
+
+best_model = lm(yt ~ (X8):(weekends) + X5 + X9 + X8 + X3 + X2 + X7 
+                + X7:(weekends + D1 + D2 + D3) + (X2):(weekends) 
+                + weekends:(h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9 + h10 
+                            + h11 + h12 + h13 + h14 + h15 + h16 + h17 + h18 + h19
+                            + h20 + h21 + h22)
+                + (h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9 + h10 + h11 
+                   + h12 + h13 + h14 + h15 + h16 + h17 + h18 + h19 + h20 + h21 
+                   + h22), myData)
+
+result = boxcox(best_model)
+lambda = result$x[which.max(result$y)]
+K2 = prod(yt^(1/length(yt))) 
+K1 = 1 / (lambda*K2^(lambda-1))
+yt2 = (((yt^lambda)-1)/K1)
+
+box_coxed_best_model = lm(yt2 ~ (X8):(weekends) + X5 + X9 + X8 + X3 + X2 + X7 
+                + X7:(weekends + D1 + D2 + D3) + (X2):(weekends) 
+                + weekends:(h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9 + h10 
+                            + h11 + h12 + h13 + h14 + h15 + h16 + h17 + h18 + h19
+                            + h20 + h21 + h22)
+                + (h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9 + h10 + h11 
+                   + h12 + h13 + h14 + h15 + h16 + h17 + h18 + h19 + h20 + h21 
+                   + h22), myData)
+
+rm(result, lambda, K2, K1, yt2)
+```
+
+But, now the Q-Q residual plot does not align with the line y=x, and is *heavy-tailed*,
+as indicated by the left Q-Q plot. Therefore, we conducted a Square-Root Transformation
+and obtain the resulting Q-Q Plot, indicated by the middle graph. Now, we tried 
+to align the Normal Q-Q plot with the line y = x. To do this, we applied the 
+Box-Cox Transformation. We investigated this further and found that there is no 
+significant effect on the distribution after applying a Box-Cox transformation, 
+indicated by the right graph. Therefore, we only transform the response variable
+by taking Y^0.5 (i.e., by only performing the square-root transformation).
+
+```{r echo=FALSE, fig.height=3, fig.width=10}
+op = par(pty = "s", mfrow = c(1, 3))
+qqnorm(almost_best_model$residuals)
+qqline(almost_best_model$residuals)
+
+qqnorm(best_model$residuals)
+qqline(best_model$residuals)
+
+qqnorm(box_coxed_best_model$residuals)
+qqline(box_coxed_best_model$residuals)
+par(op)
+rm(op, almost_best_model, box_coxed_best_model)
+```
+
+
+Hence, we conclude that we have our final model, which is:
+
+
+RentedBikeCount  = (Rainfall:Weekends + Visibility + Snowfall + Rainfall
+                  + Humidity + Temperature + SolarRadiation + SolarRadiation:Weekend
+                  + SolarRadiation:Seasons + Temperature:Weekend + Weekend:Hour + Hour)$^2$
+
+### Cross Validation
+
+We randomly choose 70% of our dataset to be the training set, and the remaining 30% to be the
+validation set. Then we compare our MSPE and MSE to see if they were similar. 
+Since the MSPR computed from the validation set was 35.493. MSE computed from the
+training set was 36.020. Due to MSPR and MSE being fairly close, it can be 
+concluded that our model is valid.
+
+```{r include=FALSE}
+# Create training set and validation set.
+data = data.frame(yt, X2, X3, X5, X7, X8, X9, weekends, h0, h1, h2, h3, h4, h5, 
+                  h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, 
+                  h19, h20, h21, h22, D1, D2, D3)
+cv.samp = sample(1:length(data$yt), .7*length(data$yt),replace=FALSE)
+data.cv.in = data[cv.samp,]
+data.cv.out = data[-cv.samp,]
+
+#fit our best model to training set.
+training_model = lm(formula = yt ~ (X8):(weekends) + X5 + X9 + X8 + X3 + X2 + X7 + X7:(weekends + D1 + D2 + D3) + (X2):(weekends) + weekends:(h0 + h1 + h2 + h3 + h4 + h5 + h6
+                                                                                    + h7 + h8 + h9
+                                                                                   + h14 + h15 + h16 + h17
+                                                                                    + h18 + h19 + h20 + h21 + h22) + (h0 + h1 + h2 + h3 + h4 + h5 + h6
+                                                                                    + h7 + h8 + h9 + h10 + h11
+                                                                                    + h12 + h13 + h14 + h15 + h16 + h17
+                                                                                    + h18 + h19 + h20 + h21 + h22), data=data.cv.in)
+
+# Calculate MSE and MSPR
+MSE = anova(training_model)['Residuals', 'Mean Sq']
+prediction = predict(training_model, data.cv.out)
+difference = yt[-cv.samp]-prediction
+n = length(data.cv.out$yt)
+MSPR = sum((difference)^2)/n
+rm(data, cv.samp,data.cv.in)
+```
+
+## Diagnostics
+
+### Regression Assumptions
+
+
+```{r echo=FALSE, fig.height=3, fig.width=10}
+par(mfrow=c(1,3))
+plot(best_model, 1)
+plot(best_model, 2)
+plot(best_model, 3)
+```
+
+Residual Vs. Fitted plot shows residuals are randomly and evenly distributed along
+a mainly horizontal line, therefore the linear assumption is true. The normal Q-Q plot is
+mostly linear with a slight left skew. Because the majority of data points are on the
+line, we conclude the data is normal. Scale - Location plot shows randomly 
+distributed points on a nearly horizontal line, therefore variance is homogeneous.
+
+### Outlying Y Observations 
+
+```{r echo=FALSE}
+# Finding outliers with Studentized deleted residuals as indicator
+t=rstudent(best_model)
+alpha=.05
+n=dim.data.frame(myData)[1]
+p.prime=length(coef(best_model))
+t.crit = qt(1-alpha/(2*n), n -p.prime-1)
+# Index of outliers
+out = which(abs(t) > t.crit)
+```
+
+Comparing studentized deleted residuals of each observation against our 
+threshold (t.crit = 4.533), 7 observations stood out as outlying Y observations.
+
+### High leverage X Observations
+
+```{r echo=FALSE}
+# Outlying X observations
+hii = round(hatvalues(best_model), 2)
+out2 = which(hii > 2*p.prime/n)
+out3 = which(hii > .5)
+```
+
+Comparing the leverage of each observation against two times the mean leverage 
+($\frac{2p'}{n}$ = 0.013), 86 observations stood out as high leverage X observations.
+Comparing leverage of each observation against .5, 0 observations stood out as 
+high leverage x observations.
+
+### Influencial Observations
+
+```{r echo=FALSE}
+data.inf = influence.measures(best_model)
+data.infmat = as.data.frame(data.inf$infmat)
+
+# DFFITS
+outliers = which(data.infmat$dffit > 2 * sqrt(p.prime/n))
+```
+
+Comparing Cook's Distance and DFBETAS against their respective thresholds, 0 influential observations were found.
+Comparing DFFITS against its threshold (2*sqrt(p'/n) = 0.161), 129 influential observations were found.
+
+```{r echo=FALSE}
+#influential outlying Y
+infouty = intersect(outliers, out)
+#influential high leverage X
+infoutx = intersect(outliers, out2)
+#influencial outliers
+infout = c(infouty, infoutx)
+#noninfluencial outliers
+noninfout = c(setdiff(out2, infout), setdiff(out,infout))
+```
+
+Overall, 3 outlying Y observations were influential, 22 high leverage X 
+observations were influential. After looking closely at each influential outlying
+observation, we determined that all points were naturally generated and will be 
+kept in our dataset. As for the remaining non-influential outliers, there is no real
+difference whether they remain in our dataset or not.
+
+```{r include=FALSE}
+library(olsrr)
+
+# plot influencial points according to different indicators
+p1 = ols_plot_cooksd_chart(best_model)
+p2 = ols_plot_dffits(best_model)
+```
+
+```{r echo=FALSE, fig.height=3, fig.width=10}
+ggarrange(p1, p2)
+rm(p1, p2)
+```
+
+Looking at the cook's distance graph, 5 points are clearly larger than the 
+rest (3950, 5052, 6454, 8307, 3965) and looking at DFFITs graph, a multitude of 
+points lay above and below the threshold, confirming our calculations.
+
+### Multicollinearity
+
+```{r echo=FALSE}
+library(regclass)
+VIF(best_model)
+```
+
+The largest VIF was 9.196, for solar radiation, which is less than 10. The mean VIF was 
+`r round(mean(VIF(best_model)), 3)`, which is not considerably larger than 1, 
+therefore there is no indication of serious multicollinearity.
 
 \newpage
 
-\textbf{\LARGE Bibliography}
+## Conclusion
+
+When we first started working on the Seoul Bike Sharing dataset, our goal was to
+figure out how the weather affected the number of bikes rented on an hourly basis.
+
+Our findings showed that weather did not have as large of an effect as we 
+anticipated, with the major effects being from the hour itself, i.e. eight in the
+morning versus eight at night, whether it was a weekend or not as well as if it 
+was raining. To be more conclusive, we found in order of most to least impact: 
+hour, weekend, temperature, humidity and visibility. As well, we also found that
+windspeed had no impact.
+
+However, we also need to account for the limitations of our study:
+
+1. The regression model we have developed is based on the models and techniques 
+we had been exposed to during class. As such, there may be a better model and 
+transformation that would fit our purposes better. 
+
+2. The predictive model we have designed is based on a fixed data set and as 
+such may not be as accurate when dealing with real-time data points. 
+
+3. After applying our transformations, we found that our final models’ residuals
+appear left-skewed albeit trying boxcox which made it worse. 
+
+4. Our model is also focused on Seoul as a whole, and the number of 
+bikes rented on an hourly basis may vary amongst different parts of Seoul.
+
+By creating a predictive model that can accurately estimate how many bikes will 
+be needed in regards to a variety of areas, we can ensure that we meet the demand
+for rental bikes. This is especially important due to the high annual growth rate
+of rental bike use which can partly be attributed to the increasing awareness of 
+climate change which has led people to prioritize more environmentally modes of 
+transportation among others.
+
+As such, potential areas for future research would be to go further into our data
+and see how the number of bikes rented on an hourly basis varies amongst different
+parts of Seoul to optimize the allocation of rental bikes in the city. As well, 
+similar bike rental systems could be popularized and adapted across the world, 
+such as Toronto which could help lower carbon emissions.
+
+\newpage
+
+## Bibliography
