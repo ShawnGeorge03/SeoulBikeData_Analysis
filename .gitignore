@@ -38,9 +38,3 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
-
-# Knit files
-SeoulBikeData_Analysis.pdf
-SeoulBikeData_Analysis.html
-SeoulBikeData_Analysis.doc
-SeoulBikeData_Analysis.docx
